@@ -1,0 +1,17 @@
+{
+  "name": "URLShortener2",
+  "version": "0.0.0",
+  "description": "Retrying the URL Shortener",
+  "main": "index.jade",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Chris Danan",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.12.2",
+    "express": "^4.12.3",
+    "jade": "^1.9.2",
+    "redis": "^0.12.1"
+  }
+}
