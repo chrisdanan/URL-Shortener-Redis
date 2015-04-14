@@ -44,7 +44,7 @@ function getNextKey(originalURL, base, res){
 			newKey = parseInt(nextCount, 10);  //Get the value of next in the database.
 			newKey = newKey.toString(36);  //Convert the value of next to a base36 string.
 
-			redisClient.setnx("short:" + base + newKey, originalURL);
+			redisClient.setnx("short:" + base + "/" + newKey, originalURL);
 			redisClient.set("long:" + originalURL, base + "/" + newKey);
 
 			giveShortURL(originalURL, res);
@@ -61,6 +61,17 @@ function giveShortURL(originalURL, res){
 
 		res.json({shortenedURL: shortURL});
 	});
+}
+
+function giveLongURL(originalURL, res){
+	redisClient.get("short:" + originalURL, function(err, longURL){
+		if(err !== null){
+			console.log("ERROR: " + err);
+			return;
+		}
+
+		res.json({longerURL: longURL});
+	})
 }
 
 //Routes
@@ -92,7 +103,7 @@ router.route("/shorter")
 					return;
 				}
 
-				if(result === 0){  //The long URL does not exist in the database.  Create a short URL.
+				if(result === 0){  //The long URL does not exist in the database.  Create a short URL, then fetch it.
 					console.log("The URL entered does not exist in the database");
 					getNextKey(originalURL, base, res);
 				} else if(result === 1){  //The long URL does exist in the database.  Fetch the short URL.
@@ -102,5 +113,18 @@ router.route("/shorter")
 			});
 		} else{  //Entered URL does not start with base, so assume user entered a shortened URL and wants the long URL.
 			console.log("User entered a short URL");
+			redisClient.exists("short:" + base + "/" + originalURL, function(err, result){
+				if(err !== null){
+					console.log("ERROR: " + err);
+					return;
+				}
+
+				if(result === 0){  //User input is not stored in the database, so return some kind of error message.
+					res.json({error: "1"});
+				} else if(result === 1){  //User input is stored in the database, so fetch the long URL.
+					var shortURL = base + "/" + originalURL;
+					giveLongURL(shortURL, res);
+				}
+			});
 		}
 	});
