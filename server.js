@@ -25,7 +25,7 @@ http.createServer(app).listen(port);
 console.log("Server listening on port " + port);
 
 //Functions
-function getNextKey(originalURL, base){
+function getNextKey(originalURL, base, res){
 
 	var newKey;
 
@@ -46,12 +46,21 @@ function getNextKey(originalURL, base){
 
 			redisClient.setnx("short:" + base + newKey, originalURL);
 			redisClient.set("long:" + originalURL, base + "/" + newKey);
+
+			giveShortURL(originalURL, res);
 		});
 	});
 }
 
-function giveShortURL(){
-	
+function giveShortURL(originalURL, res){
+	redisClient.get("long:" + originalURL, function(err, shortURL){
+		if(err !== null){
+			console.log("ERROR: " + err);
+			return;
+		}
+
+		res.json({shortenedURL: shortURL});
+	});
 }
 
 //Routes
@@ -85,11 +94,10 @@ router.route("/shorter")
 
 				if(result === 0){  //The long URL does not exist in the database.  Create a short URL.
 					console.log("The URL entered does not exist in the database");
-					getNextKey(originalURL, base);
-					giveShortURL();
+					getNextKey(originalURL, base, res);
 				} else if(result === 1){  //The long URL does exist in the database.  Fetch the short URL.
 					console.log("The URL entered exists in the database.");
-					giveShortURL();
+					giveShortURL(originalURL, res);
 				}
 			});
 		} else{  //Entered URL does not start with base, so assume user entered a shortened URL and wants the long URL.
