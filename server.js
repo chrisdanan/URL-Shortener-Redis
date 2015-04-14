@@ -25,6 +25,7 @@ http.createServer(app).listen(port);
 console.log("Server listening on port " + port);
 
 //Functions
+//Purpose: Create a new key for the shortened URL.
 function getNextKey(originalURL, base, res){
 
 	var newKey;
@@ -52,6 +53,7 @@ function getNextKey(originalURL, base, res){
 	});
 }
 
+//Purpose: Search database to return the short URL.
 function giveShortURL(originalURL, res){
 	redisClient.get("long:" + originalURL, function(err, shortURL){
 		if(err !== null){
@@ -63,6 +65,7 @@ function giveShortURL(originalURL, res){
 	});
 }
 
+//Purpose: Search database to return the long URL.
 function giveLongURL(originalURL, res){
 	redisClient.get("short:" + originalURL, function(err, longURL){
 		if(err !== null){
@@ -127,4 +130,47 @@ router.route("/shorter")
 				}
 			});
 		}
+	});
+
+//Route for shortURL.
+router.route("/:url")
+	.get(function(req, res){
+		//Reference for getting /:url value: http://stackoverflow.com/questions/20089582/how-to-get-url-parameter-in-express-node-js
+		//									 http://expressjs.com/api.html
+		var path = req.params.url,  //The path that will be queried in the db.
+			base = "http://localhost:" + port;
+
+		var url = base + "/" + path;
+		console.log("short URL: " + url);
+
+		redisClient.exists("short:" + url, function(err, result){
+			if(err !== null){
+				console.log("ERROR: " + err);
+				return;
+			}
+
+			if(result === 0){  //Short URL does not exist in the database, so first check if entered url is a long URL.
+				redisClient.exists("long:" + url, function(err, result){
+					if(err !== null){
+						console.log("ERROR: " + err);
+						return;
+					}
+
+					if(result === 0){  //Short AND long URL do not exist, so output an error message.
+						res.render("pagenx", {title: "Page does not exist"});
+					} else if(result === 1){  //This must be a long URL.
+						res.render("page", {title: path});
+					}
+				});
+			} else if(result === 1){  //Short URL exists in the database, so redirect to the long URL.
+				redisClient.get("short:" + url, function(err, longURL){
+					if(err !== null){
+						console.log("ERROR: " + err);
+						return;
+					}
+
+					res.redirect(longURL);
+				});
+			}
+		});
 	});
