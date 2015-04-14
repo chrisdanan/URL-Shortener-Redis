@@ -18,10 +18,16 @@ var main = function(){
 
 		$.post("/shorter", {url: inputURL}, function(res){
 			console.log("Posted to the server and got back a response.");
-			console.log(res.shortenedURL);
 
 			$resultParagraph.empty();
-			$resultParagraph.text("URL: " + res.shortenedURL);
+			//Reference for checking if JSON object has property: http://stackoverflow.com/questions/20804163/check-if-a-key-exists-inside-a-json-object
+			if(res.hasOwnProperty("shortenedURL")){
+				$resultParagraph.text("URL: " + res.shortenedURL);
+			} else if(res.hasOwnProperty("longerURL")){
+				$resultParagraph.text("URL: " + res.longerURL);
+			} else if(res.hasOwnProperty("error")){
+				$resultParagraph.text("Error: That URL does not exist in the database");
+			}
 		});
 	});
 };
